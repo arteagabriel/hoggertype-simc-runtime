@@ -37,7 +37,7 @@ Open `http://localhost:3002` for the standalone command console. It starts with
 a sample Assassination Rogue configuration; execute `start`, then use
 `getMetadata`, `cast`, `advanceTo`, and `getState` to inspect the simulation.
 
-`npm run build` applies all five patches, embeds the profiles, and produces the
+`npm run build` applies all six patches, embeds the profiles, and produces the
 WASM and browser application in `dist/`. `npm run dev` only stages the browser
 files and starts a local static server; it does not compile missing WASM or
 rebuild changed C++ code. Build artifacts and `.build/` caches are ignored by Git.
@@ -186,6 +186,15 @@ advances. Charge remains a manual action; its opening-use state is consumed by
 the class readiness patch. Periodic child actions such as `rend_dot` are reported
 under their playable ability token, including duration and refreshability.
 `npm run check:warrior` verifies both hero builds for Arms and Fury.
+
+Player casts use SimC's virtual cast-start hooks and retain their natural
+`execute_time()` and proc snapshots. The instant-cast patch schedules their
+completion at the current timestamp without cast delays, spell queues, or
+cast-based auto-attack delays. Background actions retain native timing. Druid
+effects that normally wait for the next APL selection resolve immediately in
+this mode because the APL does not drive player actions.
+`npm run check:cast-procs` verifies actual WASM proc consumption and immediate
+completion, including Fire Mage and Affliction Warlock.
 
 For automatic deployment from GitHub Actions, configure repository variable
 `CLOUDFLARE_ACCOUNT_ID` and secret `CLOUDFLARE_API_TOKEN` using a scoped token

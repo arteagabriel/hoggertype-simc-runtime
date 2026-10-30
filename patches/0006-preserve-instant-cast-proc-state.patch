@@ -1,0 +1,91 @@
+--- a/engine/action/action.hpp
++++ b/engine/action/action.hpp
+@@ -157,6 +157,9 @@
+    */
+   bool background;
+ 
++  // Complete player casts immediately while retaining native cast/proc state.
++  bool hoggertype_instant_cast = false;
++
+   /**
+    * @brief Check if action is executable between GCD's
+    *
+--- a/engine/action/action.cpp
++++ b/engine/action/action.cpp
+@@ -2258,7 +2258,8 @@
+ 
+   time_to_execute = execute_time();
+ 
+-  execute_event = start_action_execute_event( time_to_execute, state );
++  const timespan_t cast_delay = hoggertype_instant_cast ? 0_ms : time_to_execute;
++  execute_event = start_action_execute_event( cast_delay, state );
+ 
+   if ( trigger_gcd > timespan_t::zero() )
+     player->off_gcdactions.clear();
+@@ -2276,14 +2277,14 @@
+ 
+     start_gcd();
+ 
+-    if ( time_to_execute > timespan_t::zero() )
++    if ( cast_delay > timespan_t::zero() )
+     {
+       player->current_execute_type = execute_type::CAST_WHILE_CASTING;
+       assert( player->cast_while_casting_poll_event == nullptr );
+       player->schedule_cwc_ready( timespan_t::zero() );
+     }
+ 
+-    if ( player->enable_spell_queue && time_to_execute > player->spell_queue_window )
++    if ( player->enable_spell_queue && cast_delay > player->spell_queue_window )
+     {
+       if ( player->spell_queue_event )
+         event_t::cancel( player->spell_queue_event );
+@@ -2304,7 +2305,7 @@
+ 
+     // While an ability is casting, the auto_attack is paused
+     // So we simply reschedule the auto_attack by the ability's cast time
+-    if ( special && time_to_execute > timespan_t::zero() && !proc && ( interrupt_auto_attack || reset_auto_attack ) )
++    if ( special && cast_delay > timespan_t::zero() && !proc && ( interrupt_auto_attack || reset_auto_attack ) )
+     {
+       if( reset_auto_attack )
+         player->reset_auto_attacks( time_to_execute, player->procs.reset_aa_cast );
+--- a/engine/action/attack.cpp
++++ b/engine/action/attack.cpp
+@@ -488,7 +488,8 @@
+ 
+   time_to_execute = execute_time();
+ 
+-  execute_event = start_action_execute_event( time_to_execute, state );
++  const timespan_t cast_delay = hoggertype_instant_cast ? 0_ms : time_to_execute;
++  execute_event = start_action_execute_event( cast_delay, state );
+ 
+   if ( trigger_gcd > timespan_t::zero() )
+     player->off_gcdactions.clear();
+--- a/engine/class_modules/sc_druid.cpp
++++ b/engine/class_modules/sc_druid.cpp
+@@ -6433,7 +6433,7 @@
+     p()->buff.blooming_infusion_damage_counter->trigger( this );
+     if ( p()->buff.blooming_infusion_damage_counter->at_max_stacks() )
+     {
+-      if ( !proc && !background && !is_precombat && time_to_execute > 0_ms )
++      if ( !proc && !background && !is_precombat && time_to_execute > 0_ms && !hoggertype_instant_cast )
+         p()->spell_queued.blooming_infusion_damage = true;
+       else
+         p()->buff.blooming_infusion_damage->trigger();
+@@ -8568,7 +8568,7 @@
+     // has an icd to prevent multiple procs, but we can just check only on the main target instead
+     if ( !proc && s->chain_target == 0 && rng().roll( cascade_chance ) )
+     {
+-      if ( time_to_execute > 0_ms )
++      if ( time_to_execute > 0_ms && !hoggertype_instant_cast )
+         p()->spell_queued.star_cascade = target;
+       else
+         p()->active.star_cascade->execute_on_target( target );
+@@ -14282,7 +14282,7 @@
+ 
+   // Hero talents
+   _a->parse_effects( buff.blooming_infusion_damage, [ action, this ]( action_state_t* ) {
+-    if ( !action->proc && !action->background && !action->is_precombat && action->time_to_execute > 0_ms )
++    if ( !action->proc && !action->background && !action->is_precombat && action->time_to_execute > 0_ms && !action->hoggertype_instant_cast )
+       spell_queued.blooming_infusion_damage_expire = action;
+     else
+       buff.blooming_infusion_damage->consume( action );

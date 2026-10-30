@@ -32,6 +32,7 @@ jobs:
       - run: npm run build
       - run: npm run check:startup
       - run: npm run check:warrior
+      - run: npm run check:cast-procs
       - run: npm run source
       - run: npm run release
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

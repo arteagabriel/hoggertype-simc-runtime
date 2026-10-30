@@ -19,7 +19,8 @@
     "deploy:host": "wrangler deploy",
     "verify:release": "node verify-release.mjs",
     "check:startup": "node check-startup.mjs",
-    "check:warrior": "node check-warrior.mjs"
+    "check:warrior": "node check-warrior.mjs",
+    "check:cast-procs": "node check-cast-procs.mjs"
   },
   "devDependencies": {
     "wrangler": "4.156.0"

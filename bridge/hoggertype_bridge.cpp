@@ -608,6 +608,17 @@ void add_action_times(
 
 void collect_actions()
 {
+  // Include delegated foreground spells, such as the individual Moon stages.
+  // Keep native execute_time() so cast-dependent procs retain their semantics.
+  for ( auto* action : engine->player->action_list )
+  {
+    if ( !action->background && !action->proc )
+    {
+      action->hoggertype_instant_cast = true;
+      action->trigger_gcd = 0_ms;
+    }
+  }
+
   for ( const auto* list : engine->player->action_priority_list )
   {
     if ( list->name_str == "precombat" )
@@ -617,9 +628,6 @@ void collect_actions()
     {
       if ( !action || action->background || action->proc || !action->data().id() )
         continue;
-
-      action->base_execute_time = 0_ms;
-      action->trigger_gcd = 0_ms;
 
       engine->actions.push_back( action );
     }
@@ -1133,9 +1141,7 @@ HOGGERTYPE_EXPORT const char* hoggertype_cast( const char* json )
       return rejected_cast( "Ability is not ready" );
 
     cancel_player_decision_events();
-    engine->player->executing = action;
-    action->time_to_execute = 0_ms;
-    action->execute_event = action->start_action_execute_event( 0_ms );
+    action->schedule_execute();
     execute_without_player_actions( now );
     resolve_channel_immediately( action );
 
