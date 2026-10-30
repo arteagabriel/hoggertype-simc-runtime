@@ -52,6 +52,7 @@ export interface CombatMetadata {
 
 export interface CombatState {
   timeMs: number;
+  targetHealthPercent: number;
   damage: { total: number; dps: number };
   resources: Record<string, CombatResourceState>;
   gcdRemainingMs: number;

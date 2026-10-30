@@ -3,8 +3,8 @@
 A standalone GPLv3 browser application for interactive combat using
 [SimulationCraft](https://github.com/simulationcraft/simc). This repository
 contains the C++ bridge, upstream patches, embedded profiles, browser worker,
-message API, and a standalone command console. It has no dependency on Next.js,
-React, Chakra, or the HoggerType frontend.
+message API, and a standalone command console. Browser clients communicate with
+the runtime through its versioned message API.
 
 The current profiles cover 27 DPS specializations and their two hero talent
 choices. Tanks and healers are excluded. Engine and profile behavior are pinned

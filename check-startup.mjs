@@ -49,6 +49,12 @@ for (const [, specializationId, ...heroes] of specs) {
     const state = call('hoggertype_get_state');
     const metadata = call('hoggertype_get_metadata');
 
+    assert.equal(
+      state.targetHealthPercent,
+      100,
+      `${label}: initial target health`
+    );
+
     for (const ability of metadata.abilities) {
       assert.equal(
         typeof state.abilityReadiness?.[ability.id],
@@ -116,6 +122,13 @@ for (const [, specializationId, ...heroes] of specs) {
         `${label}: Missiles activated Surge`
       );
     }
+
+    call('hoggertype_advance_to', { timeMs: 30000 });
+    assert.equal(
+      call('hoggertype_get_state').targetHealthPercent,
+      50,
+      `${label}: target health at halfway`
+    );
 
     checked++;
   }

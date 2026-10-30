@@ -954,6 +954,11 @@ document_t state_response()
   add_resource_affordability( resource_affordability, ability_readiness, allocator );
 
   result.AddMember( "timeMs", time_ms, allocator );
+  result.AddMember(
+    "targetHealthPercent",
+    engine->player->target->health_percentage(),
+    allocator
+  );
   result.AddMember( "damage", damage, allocator );
   result.AddMember( "resources", resources, allocator );
   result.AddMember(
