@@ -16,6 +16,7 @@
     "release": "node release.mjs",
     "publish:r2": "node publish-r2.mjs",
     "deploy:host": "wrangler deploy",
+    "verify:release": "node verify-release.mjs",
     "check:startup": "node check-startup.mjs"
   },
   "devDependencies": {
