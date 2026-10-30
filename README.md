@@ -127,9 +127,11 @@ release is available in the
 [standalone console](https://hoggertype-simc-runtime.hoggertype-simc-runtime.workers.dev/releases/be38f13c1cf1358645137a4ce107dd6e568f25e0-2d9255799a881bc5/index.html).
 Use the same release directory's `frame.html` when configuring a frontend.
 
-GitHub Actions builds and checks releases automatically. Automatic R2 publication
-is gated on the Cloudflare repository credentials described below; the initial
-release was published with the authenticated local CLI.
+GitHub Actions builds, checks, and publishes releases to R2 automatically on
+pushes to `main`, excluding documentation-only changes. The workflow deploys
+the serving Worker and verifies both first and cached WASM downloads. Existing
+clients retain their pinned release URL until their own configuration changes.
+The initial release above was published with the authenticated local CLI.
 
 ## R2 deployment
 
