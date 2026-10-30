@@ -71,7 +71,13 @@ export default {
     if (request.method === 'GET' && !conditional) {
       const cached = await cache?.match(cacheKey);
 
-      if (cached) return cached;
+      if (cached) {
+        return new Response(cached.body, {
+          status: cached.status,
+          headers: cached.headers,
+          encodeBody: 'manual'
+        });
+      }
     }
 
     const object = await env.RUNTIME_BUCKET.get(key, {
