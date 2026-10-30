@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "hoggertype-simc-runtime",
+  "main": "hosting/worker.mjs",
+  "compatibility_date": "2026-10-29",
+  "workers_dev": true,
+  "r2_buckets": [
+    {
+      "binding": "RUNTIME_BUCKET",
+      "bucket_name": "hoggertype-simc-runtime"
+    }
+  ]
+}

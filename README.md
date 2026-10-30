@@ -1,155 +1,175 @@
 # SimulationCraft browser runtime
 
-This is a standalone GPLv3 browser application. It contains SimC integration,
-the C++ bridge, patches, profiles,
-worker, message API, and a command console. It does not depend on Next.js,
-React, Chakra, or the HoggerType frontend. See [LICENSE](LICENSE), [NOTICE](NOTICE),
-and [API.md](API.md).
+A standalone GPLv3 browser application for interactive combat using
+[SimulationCraft](https://github.com/simulationcraft/simc). This repository
+contains the C++ bridge, upstream patches, embedded profiles, browser worker,
+message API, and a standalone command console. It has no dependency on Next.js,
+React, Chakra, or the HoggerType frontend.
 
-Node 24 and Emscripten are required to build. No npm dependencies are required.
-The public data contract is documented in `API.md` and `api.d.ts`.
+The current profiles cover 27 DPS specializations and their two hero talent
+choices. Tanks and healers are excluded. Engine and profile behavior are pinned
+to the SimC revision in `runtime.json`, rather than tracking upstream automatically.
 
-HoggerType runs combat engines behind the same `CombatEngine` interface. The
-SimulationCraft runtime supports every DPS specialization and both of its hero
-talent trees. Tank and healer specializations are intentionally excluded. The
-selected specialization chooses an embedded profile while the initialized
-profile's APL continues to generate its playable ability catalog.
-
-## Runtime contract
-
-The runtime build produces:
-
-```text
-dist/index.html
-dist/frame.html
-dist/worker.mjs
-dist/hoggertype-simc.mjs
-dist/hoggertype-simc.wasm
-```
-
-The module must enable `ccall` and export these C functions:
-
-```text
-hoggertype_start(json_config)
-hoggertype_advance_to(json_time)
-hoggertype_cast(json_spell)
-hoggertype_get_metadata()
-hoggertype_get_state()
-hoggertype_reset()
-```
-
-Each function returns a JSON envelope:
-
-```json
-{ "ok": true, "result": {} }
-```
-
-or:
-
-```json
-{ "ok": false, "error": "reason" }
-```
-
-The bridge owns one persistent `sim_t` for the entire run. `advance_to` must
-process the SimulationCraft event queue only through the requested timestamp;
-`cast` must inject one player-selected action without invoking the normal APL.
-HoggerType deliberately removes foreground cast times, channel durations as
-player locks, and the global cooldown. Completing a word therefore executes
-its action immediately; cooldowns, charges, resources, damage, auras, and
-periodic effects still use SimC's combat model. All remaining ticks of a
-channeled ability resolve immediately at the current simulation timestamp.
-The playable catalog is generated from the initialized foreground actions in
-the profile's combat APL. SimC supplies each token, spell ID, display name,
-description, resource cost, cooldown, DoT, buff, and debuff state. Adding a
-spell to the APL therefore makes it available without a matching frontend
-constant.
-
-DoT state also includes a `refreshableDots` map generated through SimC's own
-`dot_refreshable` calculation. The UI uses it for Pandemic-window styling so
-talents, resources, and spell-specific refresh behavior remain authoritative
-in SimC instead of being duplicated in frontend formulas.
-
-Combat state exposes `abilityReadiness` through the class's virtual
-`action_ready()` method with APL `if` and target-priority expressions removed
-for the duration of the check. This retains class cast requirements even when
-they live outside `ready()`. The UI uses this map instead of individual spell
-requirements. `resourceAffordability` remains separate to support automatic
-Thistle Tea and the resource-starvation icon styling.
-
-Resource state includes cumulative `gained` and `overflowed` values from SimC.
-The UI uses both values to surface resource-generation events even when a
-refund occurs at the resource cap and the displayed amount does not change.
-
-Point resources can also expose fractional fill. Death Knight runes include a
-six-entry `segments` array sourced from each SimC rune slot's exact fill level.
-Evoker Essence and Warlock Soul Shards use SimC's fractional aggregate value,
-which the UI distributes across their point indicators. Combo Points, Chi, and
-Holy Power remain discrete because they are granted as whole points rather
-than continuously regenerated.
-
-`runtime.json` pins upstream SimulationCraft revision
-`710c2408bfd3ae4df71b8cd55cdf01f63fd6c926`, the bridge version, and API version.
-Run replays require deterministic engine versioning. Bump the runtime version
-whenever the engine, bridge, or embedded profiles change.
+See [LICENSE](LICENSE), [NOTICE](NOTICE), [API.md](API.md), and the public data
+shapes in [api.d.ts](api.d.ts).
 
 ## Building the runtime
 
-Activate Emscripten, then run:
+Requirements:
+
+- Node 24 (`.nvmrc` is included).
+- An activated Emscripten toolchain with `em++` on your PATH.
+- Git, Make, and tar. The first build fetches the pinned upstream source.
+
+From this checkout:
+
+```sh
+nvm install
+nvm use
+npm ci
+npm run build
+npm run check:startup
+npm test
+npm run dev
+```
+
+Open `http://localhost:3002` for the standalone command console. It starts with
+a sample Assassination Rogue configuration; execute `start`, then use
+`getMetadata`, `cast`, `advanceTo`, and `getState` to inspect the simulation.
+
+`npm run build` applies all four patches, embeds the profiles, and produces the
+WASM and browser application in `dist/`. `npm run dev` only stages the browser
+files and starts a local static server; it does not compile missing WASM or
+rebuild changed C++ code. Build artifacts and `.build/` caches are ignored by Git.
+
+`npm run check:startup` checks all 54 spec/hero combinations, including initial
+readiness and unused combat cooldowns. Permanent pets may attack at combat
+initialization. `npm test` checks the JavaScript command dispatcher.
+
+## Using the runtime from another application
+
+The standalone console uses the runtime's own worker. Other applications embed
+`frame.html` and connect through the versioned MessagePort API documented in
+[API.md](API.md). Each frame owns one worker and one persistent simulation.
+Consumers do not import the WASM or worker and do not share engine memory.
+
+HoggerType's frontend uses `NEXT_PUBLIC_SIMC_RUNTIME_URL` to select a release's
+`frame.html`. Its local default is `http://localhost:3002/frame.html`. That
+environment variable belongs to the frontend; this runtime does not need it.
+
+All simulation executes on the player's computer. The static host serves the
+runtime files; it does not perform simulation or retain gameplay sessions.
+
+## Combat behavior
+
+The bridge deliberately makes foreground casts and full channels resolve
+immediately and removes the global cooldown. Cooldowns, charges, resource costs,
+damage, buffs, debuffs, and periodic effects still follow SimC. Empower ranks
+come from the embedded APL action variants; Tip the Scales uses SimC's behavior.
+
+Profiles provide preset talents, gear, raid buffs, and default consumables.
+Precombat setup is restricted to buffs, forms, stealth, permanent pets,
+consumables, and APL variables. Offensive casts and combat cooldowns require
+client commands. The bridge cancels automatic player decision events.
+
+The initialized foreground APL actions generate the runtime's ability catalog.
+Consumers can filter or order that catalog for their own interface. Spell names,
+IDs, costs, cooldowns, charges, aura state, and damage come from SimC. Icon
+rendering, tooltips, typing, automatic Thistle Tea use, and ability-bar layouts
+are responsibilities of the consuming application.
+
+Combat state includes:
+
+- `abilityReadiness`: SimC class readiness with APL priority expressions removed.
+- `resourceAffordability`: dynamic resource costs, including free-cast effects.
+- `refreshableDots`: SimC's refreshability calculation for periodic effects.
+- Resource `gained` and `overflowed` totals, plus fractional resource values.
+- Per-rune `segments` for Death Knight recharge progress.
+
+The bridge owns the bounded event queue; `advanceTo` moves it to the requested
+simulation timestamp, and `cast` injects the selected ability at that timestamp.
+See [API.md](API.md) for the browser command and response format.
+
+## Releases and corresponding source
+
+`runtime.json` records the upstream revision, runtime version, and protocol
+version. Bump the runtime version when the bridge, engine, profiles, or runtime
+application changes. Change the protocol version for incompatible API changes.
+
+Before distributing a binary release, build and validate it, then run:
+
+```sh
+npm run source
+```
+
+This produces `dist/source.tar.gz` containing the complete unmodified pinned
+upstream source and notices, plus this application's bridge, patches, profiles,
+browser code, and build instructions. It excludes build caches, generated
+artifacts, Git history, and the separate frontend. Packaging requires the pinned
+Git checkout populated by the build.
+
+To build from an extracted source archive without fetching upstream, activate
+Emscripten and run from the archive's root:
+
+```sh
+SIMC_SOURCE_DIR="$PWD/upstream" bash runtime/build-wasm.sh
+```
+
+Use a clean extracted upstream tree: the build applies the patches in place.
+
+Serve the complete `dist/` directory, including the matching source archive and
+license notices, under an immutable HTTPS release URL. `.mjs` and `.wasm` need
+appropriate MIME types, and the host must allow consumers to embed `frame.html`.
+See [hosting requirements](API.md#hosting).
+
+The public source repository is available now. Automated GitHub Actions
+builds and R2 publishing are configured in `.github/workflows/runtime.yml`.
+Cloudflare account activation, credentials, and the initial deployment must be
+completed before the hosted runtime is available.
+
+## R2 deployment
+
+The bucket remains private. The small Worker in `hosting/worker.mjs` serves
+only known release files, with correct MIME types, immutable cache headers,
+and gzip-compressed WASM when the browser supports it. Simulation still runs
+in the browser; the Worker only streams files from R2. A `workers.dev` address
+can serve the initial deployment without buying or configuring a domain.
+
+Install tooling with `npm ci`, create a Cloudflare account, enable R2 in the
+dashboard, and authenticate:
+
+```sh
+npx wrangler login
+npx wrangler r2 bucket create hoggertype-simc-runtime
+```
+
+Commit source changes, build, validate, and prepare the release:
 
 ```sh
 npm run build
 npm run check:startup
 npm test
 npm run source
-npm run dev
+npm run release
+npm run publish:r2
+npm run deploy:host
 ```
 
-The script checks out the pinned SimC revision, applies the bounded-event and
-live-damage patch, embeds the DPS profiles, and writes both browser artifacts
-to `dist/`. The worker loads that runtime lazily when a run starts.
-Missing artifacts and unsupported specializations surface as setup errors;
-there is no mock fallback.
+`release.json` records the source commit and SHA-256 checksums. The release ID
+combines the source commit with a digest of the actual artifacts, so a rebuild
+with different bytes gets a different URL. Publication verifies the checksums
+and clean source checkout before uploading; `frame.html` is uploaded last.
+Keep old release prefixes for existing frontend deployments.
 
-Visit `http://localhost:3002` for the standalone console. `npm run dev` stages
-the browser application without rebuilding WASM. For an archived source bundle,
-set `SIMC_SOURCE_DIR` to its extracted `upstream/` directory before building;
-this skips Git checkout and applies patches to that clean source tree.
+Set the production frontend's `NEXT_PUBLIC_SIMC_RUNTIME_URL` to:
 
-`npm run source` packages the complete pinned upstream source (including its
-licenses) together with the bridge, patches, profiles, and build scripts into
-`dist/source.tar.gz`. It requires the pinned Git checkout from a build. Serve
-that matching archive alongside every binary release. The generated artifacts
-and local build cache are ignored by Git.
+```text
+https://<worker-address>/releases/<release-id>/frame.html
+```
 
-Deploy all of `dist/` to a versioned static HTTPS directory on R2. The client
-embeds `frame.html` and talks over a private MessagePort; it does not import the
-runtime's worker or WASM. See `API.md` for embedding and hosting headers.
-The frontend's `NEXT_PUBLIC_SIMC_RUNTIME_URL` should point to that immutable
-release's `frame.html`. Locally it defaults to `http://localhost:3002/frame.html`.
-
-The embedded profiles enable SimC's optimal raid setup and their default
-potions, flasks, food, augmentation runes, and weapon enchants. The bridge
-filters the initialized precombat list to setup actions (raid buffs, forms,
-stealth, permanent pets, consumables, and APL variables) before combat begins.
-Damage spells and combat cooldowns require typed input. It then cancels
-automatic decision events so player keystrokes control combat actions.
-
-After rebuilding, run `node check-startup.mjs` to verify all
-54 spec/hero combinations start with combat cooldowns unused and both Arcane
-profiles start at full mana without automatically activating Arcane Surge.
-Permanent pets may begin attacking when combat begins; their damage is
-excluded from the zero-startup-damage assertion.
-
-Spell and aura IDs come from SimC. The UI uses those IDs for Wowhead links and
-powered tooltips; its icon route resolves Wowhead's icon name and redirects to
-the corresponding `wow.zamimg.com` asset.
-
-Upstream SimulationCraft does not currently expose a browser-ready persistent
-combat API. Building these artifacts therefore requires a small upstream patch
-for bounded event-queue execution plus the C bridge described above; a normal
-CLI build cannot satisfy this contract.
-
-Apply `patches/0001-add-bounded-event-execution.patch` to the pinned revision.
-It adds `event_manager_t::execute_until(timespan_t)` while leaving the normal
-full-simulation `execute()` behavior intact. The bridge should use only the
-bounded method after combat initialization.
+For automatic deployment from GitHub Actions, configure repository variable
+`CLOUDFLARE_ACCOUNT_ID` and secret `CLOUDFLARE_API_TOKEN` using a scoped token
+with permission to upload to this R2 bucket and deploy the serving Worker.
+Do not commit tokens, put them in the frontend, or store an expiring local
+Wrangler OAuth token as the Actions secret. Without the account variable,
+Actions only builds, tests, and uploads a downloadable release artifact.

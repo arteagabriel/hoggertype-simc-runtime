@@ -12,7 +12,13 @@
     "build": "bash build-wasm.sh",
     "stage": "node stage.mjs",
     "source": "node package-source.mjs",
-    "test": "node --test browser/*.test.mjs",
+    "test": "node --test browser/*.test.mjs hosting/*.test.mjs",
+    "release": "node release.mjs",
+    "publish:r2": "node publish-r2.mjs",
+    "deploy:host": "wrangler deploy",
     "check:startup": "node check-startup.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "4.156.0"
   }
 }

@@ -40,9 +40,11 @@ try {
       const relative = path.slice(root.length);
 
       return (
-        !['.build', 'dist', '.git', 'node_modules'].some(
+        !['.build', 'dist', '.git', 'node_modules', '.wrangler'].some(
           (name) => relative === name || relative.startsWith(`${name}/`)
-        ) && !relative.startsWith('.env')
+        ) &&
+        !relative.startsWith('.env') &&
+        !relative.startsWith('.dev.vars')
       );
     }
   });

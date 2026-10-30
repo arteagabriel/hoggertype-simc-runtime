@@ -1,0 +1,54 @@
+name: Build and deploy runtime
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: runtime-production
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: mymindstorm/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
+        with:
+          version: '6.0.10'
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npm run check:startup
+      - run: npm run source
+      - run: npm run release
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: runtime-${{ github.sha }}
+          path: dist/
+          retention-days: 7
+      - name: Upload immutable release and deploy serving Worker
+        if: vars.CLOUDFLARE_ACCOUNT_ID != ''
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          npm run publish:r2
+          npm run deploy:host
+      - name: Record release
+        run: |
+          node --input-type=module <<'JS' >> "$GITHUB_STEP_SUMMARY"
+          import { readFileSync } from 'node:fs';
+          const release = JSON.parse(readFileSync('dist/release.json', 'utf8'));
+          console.log(`Release: ${release.releaseId}`);
+          console.log(`Runtime path: /releases/${release.releaseId}/frame.html`);
+          JS
