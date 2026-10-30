@@ -43,9 +43,13 @@ jobs:
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          RUNTIME_BASE_URL: ${{ vars.RUNTIME_BASE_URL }}
         run: |
           npm run publish:r2
           npm run deploy:host
+          RELEASE_ID=$(node -p 'JSON.parse(require("fs").readFileSync("dist/release.json")).releaseId')
+          npm run verify:release -- "${RUNTIME_BASE_URL}/releases/${RELEASE_ID}/"
+          npm run verify:release -- "${RUNTIME_BASE_URL}/releases/${RELEASE_ID}/"
       - name: Record release
         run: |
           node --input-type=module <<'JS' >> "$GITHUB_STEP_SUMMARY"

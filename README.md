@@ -122,10 +122,14 @@ license notices, under an immutable HTTPS release URL. `.mjs` and `.wasm` need
 appropriate MIME types, and the host must allow consumers to embed `frame.html`.
 See [hosting requirements](API.md#hosting).
 
-The public source repository is available now. Automated GitHub Actions
-builds and R2 publishing are configured in `.github/workflows/runtime.yml`.
-Cloudflare account activation, credentials, and the initial deployment must be
-completed before the hosted runtime is available.
+The runtime is hosted on R2 through a Cloudflare Worker. The verified initial
+release is available in the
+[standalone console](https://hoggertype-simc-runtime.hoggertype-simc-runtime.workers.dev/releases/be38f13c1cf1358645137a4ce107dd6e568f25e0-2d9255799a881bc5/index.html).
+Use the same release directory's `frame.html` when configuring a frontend.
+
+GitHub Actions builds and checks releases automatically. Automatic R2 publication
+is gated on the Cloudflare repository credentials described below; the initial
+release was published with the authenticated local CLI.
 
 ## R2 deployment
 
@@ -170,6 +174,16 @@ https://<worker-address>/releases/<release-id>/frame.html
 For automatic deployment from GitHub Actions, configure repository variable
 `CLOUDFLARE_ACCOUNT_ID` and secret `CLOUDFLARE_API_TOKEN` using a scoped token
 with permission to upload to this R2 bucket and deploy the serving Worker.
+Set repository variable `RUNTIME_BASE_URL` to the Worker's HTTPS origin so the
+workflow can verify the actual hosted WASM after deployment.
 Do not commit tokens, put them in the frontend, or store an expiring local
 Wrangler OAuth token as the Actions secret. Without the account variable,
 Actions only builds, tests, and uploads a downloadable release artifact.
+
+To verify a hosted release, including its decompressed WASM checksum, run:
+
+```sh
+npm run verify:release -- https://<worker-address>/releases/<release-id>/
+```
+
+Run it twice to verify both the initial response and a cached download.

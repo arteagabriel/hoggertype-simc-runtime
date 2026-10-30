@@ -58,7 +58,7 @@ export default {
     const key = `releases/${match[1]}/${file}${gzip ? '.gz' : ''}`;
     const cacheUrl = new URL(url.origin + url.pathname);
 
-    if (gzip) cacheUrl.search = '?encoding=gzip-v1';
+    if (gzip) cacheUrl.search = '?encoding=gzip-v2';
 
     const cacheKey = new Request(cacheUrl);
     const conditional =
@@ -125,7 +125,12 @@ export default {
     });
 
     if (cache && !conditional) {
-      context.waitUntil(cache.put(cacheKey, response.clone()).catch(() => {}));
+      const stored = new Response(response.clone().body, {
+        headers: response.headers,
+        encodeBody: 'manual'
+      });
+
+      context.waitUntil(cache.put(cacheKey, stored).catch(() => {}));
     }
 
     return response;

@@ -14,6 +14,8 @@ For GitHub Actions, create a dedicated Cloudflare API token scoped to the
 deployment account, with Workers Scripts edit, Workers R2 Storage edit, and
 Account Settings read permissions. Add it as repository secret
 `CLOUDFLARE_API_TOKEN`; add the account ID as variable `CLOUDFLARE_ACCOUNT_ID`.
+Set variable `RUNTIME_BASE_URL` to the Worker's HTTPS origin for post-deployment
+checksum checks. The workflow checks both the first download and a cache hit.
 Use the account dashboard's current permission labels when creating the token.
 Set these on the public runtime repository, not the private frontend repository.
 
