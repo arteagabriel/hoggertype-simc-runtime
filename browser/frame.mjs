@@ -38,7 +38,11 @@ window.addEventListener('message', (event) => {
     };
     port.onmessage = (request) => worker.postMessage(request.data);
     port.start();
-    port.postMessage({ type: 'ready', ...metadata });
+    port.postMessage({
+      type: 'ready',
+      ...metadata,
+      runtimeUrl: new URL('./frame.html', import.meta.url).href
+    });
     window.addEventListener('pagehide', () => {
       worker.terminate();
       port.close();

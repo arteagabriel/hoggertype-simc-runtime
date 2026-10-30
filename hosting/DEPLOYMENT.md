@@ -7,8 +7,11 @@
 4. Upload the release with `npm run publish:r2`, then `npm run deploy:host`.
 5. Verify the hosted `frame.html`, JavaScript, WASM, metadata, and source archive.
    Test a real cast from the frontend against the HTTPS runtime URL.
-6. Configure `NEXT_PUBLIC_SIMC_RUNTIME_URL` on the frontend deployment before
-   its Next.js build. Pin a release URL; do not use a mutable "latest" alias.
+6. Run `npm run promote:stable` after publication and host deployment. It verifies
+   the immutable release before atomically updating the stable redirect.
+7. Configure `NEXT_PUBLIC_SIMC_RUNTIME_URL` on the frontend deployment once to
+   `https://<worker-address>/stable/frame.html`. Use an immutable release URL
+   instead when intentionally pinning a specific build.
 
 For GitHub Actions, create a dedicated Cloudflare API token scoped to the
 deployment account, with Workers Scripts edit, Workers R2 Storage edit, and
@@ -27,4 +30,4 @@ as runtime artifacts.
 
 If a deployment fails midway through upload, the prior production URL stays
 valid. Correct the failure and rerun publication for the same artifact set.
-Choose an older release URL to roll back a frontend deployment.
+To roll back stable, run `npm run promote:stable -- <older-release-id>`.

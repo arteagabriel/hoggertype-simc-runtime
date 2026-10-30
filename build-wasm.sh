@@ -37,6 +37,8 @@ git -C "${source_dir}" apply \
   "${script_dir}/patches/0003-allow-hero-talent-override.patch"
 git -C "${source_dir}" apply \
   "${script_dir}/patches/0004-expose-rune-progress-expressions.patch"
+git -C "${source_dir}" apply \
+  "${script_dir}/patches/0005-consume-warrior-opening-charge.patch"
 
 cp "${script_dir}/bridge/hoggertype_bridge.cpp" \
   "${source_dir}/engine/sc_main.cpp"

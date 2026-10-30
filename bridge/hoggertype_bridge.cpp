@@ -559,6 +559,19 @@ void add_action_times(
     if ( self_dot && self_dot->is_ticking() )
       dot = self_dot;
 
+    // A direct spell can delegate its bleed to a background <name>_dot action.
+    // Keep the public key tied to the playable spell, even for indirect casts.
+    if ( !dot || !dot->is_ticking() )
+    {
+      if ( auto* periodic = engine->player->find_action( key + "_dot" ) )
+      {
+        auto* periodic_dot = periodic->get_dot( engine->sim->target );
+
+        if ( periodic_dot && periodic_dot->is_ticking() )
+          dot = periodic_dot;
+      }
+    }
+
     dots.AddMember(
       dot_key,
       dot ? remains_ms( dot->remains() ) : 0.0,
@@ -611,6 +624,18 @@ void collect_actions()
       engine->actions.push_back( action );
     }
   }
+}
+
+void start_warrior_auto_attacks()
+{
+  if ( engine->specialization_id != "warrior.arms" &&
+       engine->specialization_id != "warrior.fury" )
+    return;
+
+  // Arm passive swings without running the APL. Their first event stays pending
+  // until the client advances combat time after the player starts typing.
+  if ( auto* auto_attack = engine->player->find_action( "auto_attack" ) )
+    auto_attack->execute();
 }
 
 void filter_precombat_actions()
@@ -1040,6 +1065,8 @@ HOGGERTYPE_EXPORT const char* hoggertype_start( const char* json )
     collect_actions();
     cancel_player_decision_events();
     execute_without_player_actions( 0_ms );
+
+    start_warrior_auto_attacks();
 
     return empty_response();
   }

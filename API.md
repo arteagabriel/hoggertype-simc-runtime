@@ -36,7 +36,12 @@ document.body.append(frame);
 
 Wait for `{ type: 'ready', protocolVersion: 1, runtimeVersion, simcRevision }`
 on the private port before sending commands. Messages after connecting use this
-port exclusively. No wildcard target origin or global broadcast is required.
+port exclusively. The ready message also includes `runtimeUrl`, the resolved
+immutable frame URL; clients can use it to link the matching license and source
+even when they connected through `/stable/frame.html`. New sessions resolve
+the stable channel again; active workers keep their existing release.
+
+No wildcard target origin or global broadcast is required.
 `{ type: 'error', error }` indicates a connection/worker failure; discard the
 frame and reject outstanding commands.
 

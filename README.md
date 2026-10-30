@@ -37,7 +37,7 @@ Open `http://localhost:3002` for the standalone command console. It starts with
 a sample Assassination Rogue configuration; execute `start`, then use
 `getMetadata`, `cast`, `advanceTo`, and `getState` to inspect the simulation.
 
-`npm run build` applies all four patches, embeds the profiles, and produces the
+`npm run build` applies all five patches, embeds the profiles, and produces the
 WASM and browser application in `dist/`. `npm run dev` only stages the browser
 files and starts a local static server; it does not compile missing WASM or
 rebuild changed C++ code. Build artifacts and `.build/` caches are ignored by Git.
@@ -154,11 +154,13 @@ Commit source changes, build, validate, and prepare the release:
 ```sh
 npm run build
 npm run check:startup
+npm run check:warrior
 npm test
 npm run source
 npm run release
 npm run publish:r2
 npm run deploy:host
+npm run promote:stable
 ```
 
 `release.json` records the source commit and SHA-256 checksums. The release ID
@@ -167,11 +169,23 @@ with different bytes gets a different URL. Publication verifies the checksums
 and clean source checkout before uploading; `frame.html` is uploaded last.
 Keep old release prefixes for existing frontend deployments.
 
-Set the production frontend's `NEXT_PUBLIC_SIMC_RUNTIME_URL` to:
+Set the production frontend's `NEXT_PUBLIC_SIMC_RUNTIME_URL` once to:
 
 ```text
-https://<worker-address>/releases/<release-id>/frame.html
+https://<worker-address>/stable/frame.html
 ```
+
+The stable address sends an uncached redirect to an immutable release. Its
+relative assets therefore remain pinned to one build for the whole browser
+session. Promotion updates a single R2 pointer only after both live checksum
+checks pass. Existing games continue using their loaded worker. Direct
+`/releases/<release-id>/frame.html` URLs remain available for explicit pinning.
+
+Warrior auto-attacks are armed as passive events and start when simulation time
+advances. Charge remains a manual action; its opening-use state is consumed by
+the class readiness patch. Periodic child actions such as `rend_dot` are reported
+under their playable ability token, including duration and refreshability.
+`npm run check:warrior` verifies both hero builds for Arms and Fury.
 
 For automatic deployment from GitHub Actions, configure repository variable
 `CLOUDFLARE_ACCOUNT_ID` and secret `CLOUDFLARE_API_TOKEN` using a scoped token

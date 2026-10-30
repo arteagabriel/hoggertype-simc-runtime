@@ -1,0 +1,10 @@
+--- a/engine/class_modules/sc_warrior.cpp
++++ b/engine/class_modules/sc_warrior.cpp
+@@ -3412,6 +3412,7 @@
+     }
+ 
+     warrior_attack_t::execute();
++    first_charge = false;
+ 
+   }
+ 

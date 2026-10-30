@@ -15,9 +15,11 @@
     "test": "node --test browser/*.test.mjs hosting/*.test.mjs",
     "release": "node release.mjs",
     "publish:r2": "node publish-r2.mjs",
+    "promote:stable": "node promote-stable.mjs",
     "deploy:host": "wrangler deploy",
     "verify:release": "node verify-release.mjs",
-    "check:startup": "node check-startup.mjs"
+    "check:startup": "node check-startup.mjs",
+    "check:warrior": "node check-warrior.mjs"
   },
   "devDependencies": {
     "wrangler": "4.156.0"

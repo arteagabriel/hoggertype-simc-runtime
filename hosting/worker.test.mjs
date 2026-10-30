@@ -5,6 +5,37 @@ import worker from './worker.mjs';
 const revision = 'a'.repeat(40) + '-' + 'b'.repeat(16);
 const base = `https://runtime.example.test/releases/${revision}/`;
 
+test('stable URLs redirect without caching to a complete immutable release', async () => {
+  let requested;
+  const result = await worker.fetch(
+    new Request('https://runtime.example.test/stable/frame.html'),
+    {
+      RUNTIME_BUCKET: {
+        async get(key) {
+          requested = key;
+          return { json: async () => ({ releaseId: revision }) };
+        }
+      }
+    }
+  );
+
+  assert.equal(requested, 'channels/stable.json');
+  assert.equal(result.status, 307);
+  assert.equal(result.headers.get('Cache-Control'), 'no-store');
+  assert.equal(result.headers.get('Location'), base + 'frame.html');
+});
+
+test('missing stable releases fail without pointing at partial files', async () => {
+  const result = await worker.fetch(
+    new Request('https://runtime.example.test/stable/frame.html'),
+    {
+      RUNTIME_BUCKET: { get: async () => null }
+    }
+  );
+
+  assert.equal(result.status, 503);
+});
+
 test('streams WASM with the MIME type, embedding headers and immutable caching', async () => {
   let key;
   const result = await worker.fetch(

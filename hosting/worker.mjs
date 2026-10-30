@@ -36,6 +36,33 @@ export default {
       });
     }
 
+    const stable = /^\/stable\/([^/]+)$/.exec(url.pathname);
+
+    if (stable && Object.hasOwn(mimeTypes, stable[1])) {
+      const pointer = await env.RUNTIME_BUCKET.get('channels/stable.json');
+
+      if (!pointer) {
+        return new Response('No stable release is published yet.', {
+          status: 503,
+          headers: { 'Cache-Control': 'no-store' }
+        });
+      }
+
+      const { releaseId } = await pointer.json();
+
+      if (!/^[a-f0-9]{40}-[a-f0-9]{16}$/.test(releaseId)) {
+        return new Response('Invalid stable release.', { status: 503 });
+      }
+
+      return new Response(null, {
+        status: 307,
+        headers: {
+          Location: new URL(`/releases/${releaseId}/${stable[1]}`, url).href,
+          'Cache-Control': 'no-store'
+        }
+      });
+    }
+
     const match = /^\/releases\/([a-f0-9]{40}-[a-f0-9]{16})\/([^/]+)$/.exec(
       url.pathname
     );
