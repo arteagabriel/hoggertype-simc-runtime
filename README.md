@@ -1,11 +1,10 @@
 # SimulationCraft browser runtime
 
-This is a standalone GPLv3 browser application, intended for publication as its
-own repository. It contains SimC integration, the C++ bridge, patches, profiles,
+This is a standalone GPLv3 browser application. It contains SimC integration,
+the C++ bridge, patches, profiles,
 worker, message API, and a command console. It does not depend on Next.js,
 React, Chakra, or the HoggerType frontend. See [LICENSE](LICENSE), [NOTICE](NOTICE),
-and [API.md](API.md). Copy this entire directory to publish the runtime source;
-do not publish the parent repository as a way to publish this application.
+and [API.md](API.md).
 
 Node 24 and Emscripten are required to build. No npm dependencies are required.
 The public data contract is documented in `API.md` and `api.d.ts`.
