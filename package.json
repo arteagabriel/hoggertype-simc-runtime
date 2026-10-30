@@ -1,0 +1,18 @@
+{
+  "name": "hoggertype-simc-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "GPL-3.0-only",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "dev": "node serve.mjs",
+    "build": "bash build-wasm.sh",
+    "stage": "node stage.mjs",
+    "source": "node package-source.mjs",
+    "test": "node --test browser/*.test.mjs",
+    "check:startup": "node check-startup.mjs"
+  }
+}

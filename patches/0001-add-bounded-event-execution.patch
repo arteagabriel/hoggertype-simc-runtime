@@ -1,0 +1,132 @@
+diff --git a/engine/action/stats.cpp b/engine/action/stats.cpp
+index ea1499c..e536e03 100644
+--- a/engine/action/stats.cpp
++++ b/engine/action/stats.cpp
+@@ -285,6 +285,20 @@ void stats_t::datacollection_end()
+   }
+ }
+ 
++double stats_t::iteration_actual_amount() const
++{
++  double amount = 0.0;
++
++  range::for_each( direct_results, [ &amount ]( const stats_results_t& result ) {
++    amount += result.iteration_actual_amount;
++  } );
++  range::for_each( tick_results, [ &amount ]( const stats_results_t& result ) {
++    amount += result.iteration_actual_amount;
++  } );
++
++  return amount;
++}
++
+ // stats_t::analyze =========================================================
+ 
+ void stats_t::analyze()
+diff --git a/engine/player/stats.hpp b/engine/player/stats.hpp
+index 4b3ee35..cf38239 100644
+--- a/engine/player/stats.hpp
++++ b/engine/player/stats.hpp
+@@ -106,4 +106,5 @@ public:
+ 
+   bool has_direct_amount_results() const;
+   bool has_tick_amount_results() const;
+-};
+\ No newline at end of file
++  double iteration_actual_amount() const;
++};
+diff --git a/engine/sim/event_manager.cpp b/engine/sim/event_manager.cpp
+index bb110e7..ca1c348 100644
+--- a/engine/sim/event_manager.cpp
++++ b/engine/sim/event_manager.cpp
+@@ -206,15 +206,23 @@ void event_manager_t::reschedule_event( event_t* e )
+ // event_manager_t::execute =================================================
+ 
+ bool event_manager_t::execute()
++{
++  return execute_until( timespan_t::max() );
++}
++
++// event_manager_t::execute_until ===========================================
++
++bool event_manager_t::execute_until( timespan_t until )
+ {
+   unsigned n_events = 0U;
++  const uint64_t events_processed_at_start = events_processed;
+   std::vector<std::string> debug_list;
+   static const unsigned MAX_EVENTS =
+       75U * ( sim->single_actor_batch ? 1U : as<unsigned>( sim->player_no_pet_list.size() ) ) *
+       // Increase max event count for AOE sims slightly (10% per defined enemy)
+       ( 10U + as<unsigned>( sim->target_list.size() ) );
+ 
+-  while ( event_t* e = next_event() )
++  while ( event_t* e = next_event( until ) )
+   {
+     if ( e->time == current_time )
+     {
+@@ -291,7 +299,10 @@ bool event_manager_t::execute()
+       break;
+   }
+ 
+-  total_events_processed += events_processed;
++  if ( !canceled && until != timespan_t::max() )
++    current_time = std::max( current_time, until );
++
++  total_events_processed += events_processed - events_processed_at_start;
+ 
+   return true;
+ }
+@@ -360,16 +371,22 @@ void event_manager_t::init()
+ 
+ // event_manager_t::next_event ==============================================
+ 
+-event_t* event_manager_t::next_event()
++event_t* event_manager_t::next_event( timespan_t until )
+ {
+   if ( events_remaining == 0 )
+     return nullptr;
+ 
++  unsigned search_slice = timing_slice;
++
+   while ( true )
+   {
+-    event_t*& event_list = timing_wheel[ timing_slice ];
++    event_t*& event_list = timing_wheel[ search_slice ];
+     if ( event_list )
+     {
++      if ( event_list->time > until )
++        return nullptr;
++
++      timing_slice = search_slice;
+       event_t* e = event_list;
+       event_list = e->next;
+       events_remaining--;
+@@ -377,10 +394,10 @@ event_t* event_manager_t::next_event()
+       return e;
+     }
+ 
+-    timing_slice++;
+-    if ( timing_slice == timing_wheel.size() )
++    search_slice++;
++    if ( search_slice == timing_wheel.size() )
+     {
+-      timing_slice = 0;
++      search_slice = 0;
+       // Time Wheel turns around.
+     }
+   }
+diff --git a/engine/sim/event_manager.hpp b/engine/sim/event_manager.hpp
+index a09390b..3fcc990 100644
+--- a/engine/sim/event_manager.hpp
++++ b/engine/sim/event_manager.hpp
+@@ -53,8 +53,9 @@ struct event_manager_t
+   void recycle_event( event_t* );
+   void add_event( event_t*, timespan_t delta_time );
+   void reschedule_event( event_t* );
+-  event_t* next_event();
++  event_t* next_event( timespan_t until = timespan_t::max() );
+   bool execute();
++  bool execute_until( timespan_t until );
+   void cancel();
+   void flush();
+   void init();

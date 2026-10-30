@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HoggerType SimulationCraft runtime</title>
+    <script type="module" src="./console.mjs"></script>
+  </head>
+  <body>
+    <h1>SimulationCraft browser runtime</h1>
+    <p>
+      An independent GPLv3 application for interactive, single-target combat.
+      Simulation runs locally in a worker. This console requires no HoggerType
+      frontend.
+    </p>
+    <p>
+      <a href="./LICENSE">License</a> · <a href="./NOTICE">Notices</a> ·
+      <a href="./API.md">Message API</a> ·
+      <a href="./runtime.json">Version</a>
+    </p>
+    <p>
+      Distribution must include the matching source archive alongside these
+      files. <a href="./source.tar.gz">Download corresponding source</a>.
+    </p>
+    <form id="command">
+      <p>
+        <label>
+          Command
+          <select id="method">
+            <option>start</option>
+            <option>getMetadata</option>
+            <option>getState</option>
+            <option>cast</option>
+            <option>advanceTo</option>
+            <option>reset</option>
+          </select>
+        </label>
+      </p>
+      <p>
+        <label>
+          JSON payload (empty for commands without a payload)<br />
+          <textarea id="payload" rows="7" cols="65">
+{"specializationId":"rogue.assassination","heroTalentId":"deathstalker","durationMs":60000,"seed":42}</textarea>
+        </label>
+      </p>
+      <button>Execute</button>
+    </form>
+    <pre id="output" aria-live="polite">Ready.</pre>
+  </body>
+</html>

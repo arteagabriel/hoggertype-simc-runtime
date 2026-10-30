@@ -1,0 +1,14 @@
+HoggerType SimulationCraft browser runtime
+
+The bridge, runtime application, and build scripts in this directory are
+licensed under GPL-3.0-only. See LICENSE.
+
+SimulationCraft is copyright its respective contributors. The pinned upstream
+source, license notices, third-party licenses, and our modifications must be
+included with each distributed runtime's corresponding source. Upstream:
+https://github.com/simulationcraft/simc
+
+The browser artifacts are compiled from SimulationCraft and the local bridge;
+they are not a proprietary runtime. The adjacent frontend is a separate client
+and is not included in this runtime's source package or license declaration.
+This directory boundary does not itself determine the client's GPL obligations.

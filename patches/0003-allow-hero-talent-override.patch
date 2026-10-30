@@ -1,0 +1,27 @@
+diff --git a/engine/player/player.cpp b/engine/player/player.cpp
+index b51e49f..37a23b0 100644
+--- a/engine/player/player.cpp
++++ b/engine/player/player.cpp
+@@ -3162,6 +3162,22 @@ void player_t::init_talents()
+     }
+   }
+ 
++  // A separately supplied hero tree replaces the one encoded in a complete
++  // talent hash. Class and specialization traits remain untouched.
++  if ( !hero_talents_str.empty() && !talents_str.empty() )
++  {
++    player_traits.erase(
++      std::remove_if( player_traits.begin(), player_traits.end(), []( const auto& trait ) {
++        const auto tree = std::get<0>( trait );
++        return tree == talent_tree::HERO || tree == talent_tree::SELECTION;
++      } ),
++      player_traits.end()
++    );
++
++    player_sub_trees.clear();
++    player_sub_traits.clear();
++  }
++
+   auto parsed_sub_trees = player_sub_trees;
+ 
+   // parse_traits MUST BE CALLED for all talent trees to ensure that freely granted traits are properly processed, as

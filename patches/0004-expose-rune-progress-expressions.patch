@@ -1,0 +1,28 @@
+diff --git a/engine/class_modules/sc_death_knight.cpp b/engine/class_modules/sc_death_knight.cpp
+--- a/engine/class_modules/sc_death_knight.cpp
++++ b/engine/class_modules/sc_death_knight.cpp
+@@ -14519,6 +14519,24 @@ std::unique_ptr<expr_t> death_knight_t::create_expression( std::string_view nam
+ {
+   auto splits = util::string_split<std::string_view>( name_str, "." );
+ 
++  if ( util::str_compare_ci( splits[ 0 ], "rune" ) && splits.size() > 1 &&
++       util::str_prefix_ci( splits[ 1 ], "progress_" ) )
++  {
++    const auto slot_character = splits[ 1 ][ splits[ 1 ].size() - 1 ];
++    const auto slot_number = slot_character - '0';
++
++    if ( slot_number <= 0 || as<size_t>( slot_number ) > MAX_RUNES )
++    {
++      throw sc_invalid_apl_argument(
++        fmt::format( "Invalid rune slot in 'rune.progress_{}'.", slot_character )
++      );
++    }
++
++    return make_fn_expr( "rune_progress", [ this, slot_number ]() {
++      return _runes.slot[ slot_number - 1 ].fill_level();
++    } );
++  }
++
+   if ( util::str_compare_ci( splits[ 0 ], "rune" ) && splits.size() > 1 )
+   {
+     // rune.time_to_x returns the number of seconds before X runes will be ready at the current generation rate

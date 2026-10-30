@@ -1,0 +1,78 @@
+diff --git a/engine/report/charts.cpp b/engine/report/charts.cpp
+index 33daae3..386c55f 100644
+--- a/engine/report/charts.cpp
++++ b/engine/report/charts.cpp
+@@ -430,6 +430,7 @@ std::string get_metric_value_name( metric_value_e val )
+ }
+ 
+ 
++#ifndef SC_NO_THREADING
+ void profilesets_insert_data( highchart::bar_chart_t& chart,
+                   std::string_view name,
+                   const color::rgb c,
+@@ -516,6 +517,7 @@ void profilesets_populate_chart_data( highchart::bar_chart_t& profileset,
+       profilesets_insert_data( profileset, base_name, c, baseline_data, true, baseline_value, mean );
+     }
+ }
++#endif
+ 
+ }  // anonymous namespace ====================================================
+ 
+@@ -1729,6 +1731,7 @@ void chart::generate_profilesets_chart( highchart::bar_chart_t& chart, const sim
+                                         util::span<const profileset::profile_set_t*> results,
+                                         util::span<const profileset::profile_set_t*> results_mean )
+ {
++#ifndef SC_NO_THREADING
+   bool is_multiactor_metric = util::scale_metric_is_raid( sim.profileset_metric.front() ) && sim.player_no_pet_list.size() > 1;
+   const auto* baseline = sim.player_no_pet_list[ sim.profileset_report_player_index ];
+ 
+@@ -1831,4 +1834,11 @@ void chart::generate_profilesets_chart( highchart::bar_chart_t& chart, const sim
+                                    base_name, sim.profileset_metric.front(), c );
+   profilesets_populate_chart_data( chart, base_offset, MAX_PROFILESET_CHART_ENTRIES, results_mean, baseline,
+                                    base_name, sim.profileset_metric.front(), c, true );
++#else
++  (void)chart;
++  (void)sim;
++  (void)chart_id;
++  (void)results;
++  (void)results_mean;
++#endif
+ }
+diff --git a/engine/report/report_text.cpp b/engine/report/report_text.cpp
+index 68d7eaa..68778f7 100644
+--- a/engine/report/report_text.cpp
++++ b/engine/report/report_text.cpp
+@@ -1232,6 +1232,12 @@ void print_player_sequence( std::ostream& os, sim_t* sim, const std::vector<play
+ 
+ void print_profilesets( std::ostream& out, const profileset::profilesets_t& profilesets, const sim_t& sim )
+ {
++#ifdef SC_NO_THREADING
++  (void)out;
++  (void)profilesets;
++  (void)sim;
++  return;
++#else
+   if ( profilesets.n_profilesets() == 0 )
+   {
+     return;
+@@ -1245,6 +1251,7 @@ void print_profilesets( std::ostream& out, const profileset::profilesets_t& prof
+   range::for_each( results, [ &out ]( const profileset::profile_set_t* profileset ) {
+     fmt::print( out, "    {:-10.3f} : {:s}\n", profileset->result().median(), profileset->name() );
+   } );
++#endif
+ }
+ 
+ void print_text_report( std::ostream& os, sim_t* sim, bool detail )
+diff --git a/engine/sim/profileset.cpp b/engine/sim/profileset.cpp
+index 3533197..e45de0e 100644
+--- a/engine/sim/profileset.cpp
++++ b/engine/sim/profileset.cpp
+@@ -1169,8 +1169,6 @@ void profilesets_t::initialize( sim_t* ) {}
+ std::string profilesets_t::current_profileset_name() { return "DUMMY"; }
+ void profilesets_t::cancel() {}
+ bool profilesets_t::iterate( sim_t*  ) { return true ;}
+-void profilesets_t::output_html( const sim_t&, std::ostream& ) const {}
+-void profilesets_t::output_text( const sim_t&, std::ostream& ) const {}
+ size_t profilesets_t::n_profilesets() const { return 0; }
+ bool profilesets_t::is_running() const { return false; }
+ }
