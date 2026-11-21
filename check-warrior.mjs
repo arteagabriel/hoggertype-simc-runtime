@@ -82,6 +82,46 @@ for (const [spec, heroes] of [
       `${label}: Charge reused at melee range`
     );
 
+    if (spec === 'fury' && hero === 'mountain_thane') {
+      start();
+      const ids = call('get_metadata').abilities.map((ability) => ability.id);
+
+      for (const id of ['avatar', 'thunder_clap', 'thunder_blast']) {
+        assert.ok(ids.includes(id), `${label}: missing ${id}`);
+      }
+
+      assert.ok(!ids.includes('bladestorm'), `${label}: Slayer cooldown retained`);
+      assert.equal(call('cast', { spellId: 'thunder_clap' }).status, 'executed');
+      assert.equal(call('cast', { spellId: 'avatar' }).status, 'executed');
+      const empowered = call('get_state');
+
+      assert.ok(empowered.buffs.avatar, `${label}: Avatar buff missing`);
+      assert.ok(empowered.buffs.thunder_blast, `${label}: empowerment missing`);
+      assert.equal(empowered.abilityReadiness.thunder_clap, false);
+      assert.equal(empowered.abilityReadiness.thunder_blast, true);
+      assert.equal(call('cast', { spellId: 'thunder_blast' }).status, 'executed');
+      const used = call('get_state');
+
+      assert.ok(
+        used.damage.total > empowered.damage.total,
+        `${label}: no Blast damage`
+      );
+      assert.equal(
+        used.buffs.thunder_blast?.stacks ?? 0,
+        empowered.buffs.thunder_blast.stacks - 1,
+        `${label}: empowerment not consumed`
+      );
+      assert.ok(
+        used.cooldowns.thunder_clap > 0,
+        `${label}: shared cooldown missing`
+      );
+      assert.equal(used.cooldowns.thunder_clap, used.cooldowns.thunder_blast);
+
+      console.log(
+        `${label}: Clap, Avatar, Blast damage and shared cooldown passed.`
+      );
+    }
+
     if (spec === 'arms') {
       start();
       call('cast', { spellId: 'charge' });

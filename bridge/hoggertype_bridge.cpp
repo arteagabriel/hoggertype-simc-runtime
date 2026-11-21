@@ -233,6 +233,14 @@ std::string read_profile(
     }
   }
 
+  if ( specialization_id == "warrior.fury" && hero_talent_id == "mountain_thane" )
+  {
+    // The base Fury profile is Slayer. Thane needs its class prerequisite and
+    // Avatar choice as well as the hero tree for Thunder Blast to be usable.
+    profile_text += "\nclass_talents=thunder_clap:1\n";
+    profile_text += "spec_talents=bladestorm:0/avatar:1\n";
+  }
+
   if ( !has_dedicated_hero_profiles( specialization_id ) )
   {
     profile_text += "\nhero_talents=";
